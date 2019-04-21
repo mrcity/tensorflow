@@ -10,7 +10,10 @@ cc_library(
         "NeuralNetworksShim.h",
         "NeuralNetworksTypes.h",
     ],
-    linkopts = ["-ldl"],
+    linkopts = select({
+        "//tensorflow:windows": [],
+        "//conditions:default": ["-ldl"],
+    }),
 )
 
 cc_library(
@@ -29,8 +32,12 @@ cc_library(
     hdrs = [
         "nnapi_implementation.h",
     ],
-    linkopts = ["-ldl"] + select({
+    linkopts = select({
+        "//tensorflow:windows": [],
+        "//conditions:default": ["-ldl"],
+    }) + select({
         "//tensorflow:android": [],
+        "//tensorflow:macos": [],
         "//tensorflow:ios": [],
         "//tensorflow:windows": [],
         "//conditions:default": ["-lrt"],

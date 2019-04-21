@@ -367,8 +367,8 @@ TEST_F(MetaOptimizerTest, OptimizeFunctionLibrary) {
       if (node.name() == "my_mul/inlined_inputs" && ++count) {
         EXPECT_EQ("IdentityN", node.op());
         EXPECT_EQ(2, node.input_size());
-        EXPECT_EQ("x:0", node.input(0));
-        EXPECT_EQ("x:0", node.input(1));
+        EXPECT_EQ("x", node.input(0));
+        EXPECT_EQ("x", node.input(1));
       } else if (node.name() == "my_mul/x" && ++count) {
         EXPECT_EQ("Identity", node.op());
         EXPECT_EQ(1, node.input_size());
@@ -623,17 +623,17 @@ TEST_F(MetaOptimizerTest, OptimizeFunctionLibraryWithRestrictions) {
   MetaOptimizer optimizer(nullptr, config_proto);
 
   // Define simple function library with two identical mul functions.
-  FunctionDef mul_func_1 =
-      FunctionDefHelper::Create("MyMul1", {"x:float", "y:float"}, {"z:float"},
-                                {}, {{{"mul"}, "Mul", {"x", "y"}, {}}},
-                                /*ret_def=*/
-                                {{"z", "mul:z:0"}});
+  FunctionDef mul_func_1 = FunctionDefHelper::Create(
+      "MyMul1", {"x:float", "y:float"}, {"z:float"}, {},
+      {{{"mul"}, "Mul", {"x", "y"}, {{"T", DT_FLOAT}}}},
+      /*ret_def=*/
+      {{"z", "mul:z:0"}});
 
-  FunctionDef mul_func_2 =
-      FunctionDefHelper::Create("MyMul2", {"x:float", "y:float"}, {"z:float"},
-                                {}, {{{"mul"}, "Mul", {"x", "y"}, {}}},
-                                /*ret_def=*/
-                                {{"z", "mul:z:0"}});
+  FunctionDef mul_func_2 = FunctionDefHelper::Create(
+      "MyMul2", {"x:float", "y:float"}, {"z:float"}, {},
+      {{{"mul"}, "Mul", {"x", "y"}, {{"T", DT_FLOAT}}}},
+      /*ret_def=*/
+      {{"z", "mul:z:0"}});
 
   // Tensorflow graph:
   //
@@ -824,7 +824,6 @@ TEST_F(MetaOptimizerTest, RunPostOptimizationVerifiersOnInvalidGraph) {
       {NDef("x0", "Placeholder", {}, {{"dtype", DT_FLOAT}}, kDevice),
        NDef("x1", "Placeholder", {}, {{"dtype", DT_FLOAT}}, kDevice),
        NDef("dy", "Placeholder", {}, {{"dtype", DT_FLOAT}}, kDevice),
-       NDef("x1", "Placeholder", {}, {{"dtype", DT_FLOAT}}, kDevice),
        // Calls into function library
        NDef("mul_1", "MyMul1", {"x0", "x1"}, {}, kDevice),
        NDef("mul_2", "MyMul2", {"x0", "x1"}, {}, kDevice),
@@ -857,9 +856,10 @@ TEST_F(MetaOptimizerTest, RunPostOptimizationVerifiersOnInvalidGraph) {
   MetaOptimizer optimizer_with_post_verifiers(nullptr, config_proto);
   Status status =
       optimizer_with_post_verifiers.Optimize(nullptr, item, &output);
-  EXPECT_EQ(status.code(), errors::Code::NOT_FOUND);
-  EXPECT_TRUE(
-      absl::StrContains(status.error_message(), "Op type not registered"));
+  EXPECT_EQ(status.code(), errors::Code::INVALID_ARGUMENT);
+  EXPECT_TRUE(absl::StrContains(
+      status.error_message(),
+      "NodeDef expected inputs 'float' do not match 3 inputs specified"));
 }
 
 TEST_F(MetaOptimizerTest, RunInterOptimizerVerifiersOnInvalidGraph) {
@@ -931,9 +931,10 @@ TEST_F(MetaOptimizerTest, RunInterOptimizerVerifiersOnInvalidGraph) {
   MetaOptimizer optimizer_with_inter_verifiers(nullptr, config_proto);
   Status status =
       optimizer_with_inter_verifiers.Optimize(nullptr, item, &output);
-  EXPECT_EQ(status.code(), errors::Code::NOT_FOUND);
-  EXPECT_TRUE(
-      absl::StrContains(status.error_message(), "Op type not registered"));
+  EXPECT_EQ(status.code(), errors::Code::INVALID_ARGUMENT);
+  EXPECT_TRUE(absl::StrContains(
+      status.error_message(),
+      "NodeDef expected inputs 'float' do not match 3 inputs specified"));
 }
 
 }  // namespace
