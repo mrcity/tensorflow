@@ -1,0 +1,9 @@
+???
+zero
+two
+three
+four
+circle
+heart
+star
+triangle
